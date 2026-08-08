@@ -77,15 +77,16 @@ class OpenAIVisionProvider implements VisionProvider {
 }
 
 /**
- * True only when a real provider is wired up. Without it the app falls back to
+ * True when an API key is provided. Without one the app falls back to
  * MockVisionProvider, which always returns the same sample result.
  */
 export function isVisionConfigured(): boolean {
-  return process.env.AI_PROVIDER === 'openai' && Boolean(process.env.AI_API_KEY);
+  return Boolean(process.env.AI_API_KEY);
 }
 
 export function getVisionProvider(): VisionProvider {
-  if (isVisionConfigured()) {
+  const provider = process.env.AI_PROVIDER || 'openai';
+  if (isVisionConfigured() && provider === 'openai') {
     return new OpenAIVisionProvider(process.env.AI_API_KEY as string);
   }
   return new MockVisionProvider();
