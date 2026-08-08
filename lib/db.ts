@@ -1,20 +1,28 @@
 ﻿import { Meal, User, UserPreferences, FavoriteMeal, Session } from '@/types';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { DbSchema, Store, emptyDb } from './store/types';
+import { JsonStore } from './store/json';
+import { PostgresStore } from './store/postgres';
 
-// DATA_DIR lets a deployment point the database at a mounted persistent volume.
-// Without a persistent disk the file resets on every deploy/restart.
-const DATA_DIR = process.env.DATA_DIR
-  ? path.resolve(process.env.DATA_DIR)
-  : path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DATA_DIR, 'db.json');
+let store: Store | null = null;
 
-interface DbSchema {
-  users: User[];
-  preferences: UserPreferences[];
-  meals: Meal[];
-  favorites: FavoriteMeal[];
-  sessions: Session[];
+async function getStore(): Promise<Store> {
+  if (!store) {
+    const connectionString = process.env.DATABASE_URL;
+    const newStore = connectionString ? new PostgresStore(connectionString) : new JsonStore();
+    await newStore.init();
+    store = newStore;
+  }
+  return store;
+}
+
+async function readDb(): Promise<DbSchema> {
+  const s = await getStore();
+  return s.readDb();
+}
+
+async function writeDb(db: DbSchema): Promise<void> {
+  const s = await getStore();
+  return s.writeDb(db);
 }
 
 export const DEFAULT_GOALS = {
@@ -23,39 +31,6 @@ export const DEFAULT_GOALS = {
   daily_carbs_g: 200,
   daily_fat_g: 60,
 } as const;
-
-function emptyDb(): DbSchema {
-  return { users: [], preferences: [], meals: [], favorites: [], sessions: [] };
-}
-
-async function readDb(): Promise<DbSchema> {
-  try {
-    const content = await fs.readFile(DB_PATH, 'utf-8');
-    const parsed = JSON.parse(content) as Partial<DbSchema>;
-    return {
-      users: parsed.users ?? [],
-      preferences: parsed.preferences ?? [],
-      meals: parsed.meals ?? [],
-      favorites: parsed.favorites ?? [],
-      sessions: parsed.sessions ?? [],
-    };
-  } catch {
-    return emptyDb();
-  }
-}
-
-let writeQueue: Promise<void> = Promise.resolve();
-
-async function writeDb(db: DbSchema): Promise<void> {
-  const task = writeQueue.then(async () => {
-    await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
-    const tmpPath = `${DB_PATH}.tmp`;
-    await fs.writeFile(tmpPath, JSON.stringify(db, null, 2), 'utf-8');
-    await fs.rename(tmpPath, DB_PATH);
-  });
-  writeQueue = task.catch(() => {});
-  return task;
-}
 
 export async function getMeals(userId: string, logicalDate?: string): Promise<Meal[]> {
   const db = await readDb();
