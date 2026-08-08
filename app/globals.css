@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0B1A14;
+  --foreground: #F8FAFC;
+  --brand: #16B981;
+  --brand-light: #22C55E;
+  --brand-dark: #059669;
+  --card: #0F172A;
+  --card-light: #1E293B;
+  --muted: #94A3B8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-light: var(--brand-light);
+  --color-brand-dark: var(--brand-dark);
+  --color-card: var(--card);
+  --color-card-light: var(--card-light);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-tajawal);
+}
+
+body {
+  background: linear-gradient(180deg, #0B1A14 0%, #0F172A 100%);
+  background-attachment: fixed;
+  color: var(--foreground);
+  min-height: 100dvh;
+  font-family: var(--font-tajawal), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Keeps the fixed bottom nav clear of the iOS home indicator. */
+.safe-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
